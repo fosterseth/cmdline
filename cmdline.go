@@ -117,6 +117,15 @@ func RegisterConfigTypeForApp(appName string, name string, description string, c
 	globalAppConfigTypes[appName] = appCTs
 }
 
+var globalAppFunc map[string] func(interface{}) error
+
+func RegisterFuncForApp(funcName string, f func(interface{}) error) {
+	if globalAppFunc == nil {
+		globalAppFunc = make(map[string] func(interface{}) error)
+	}
+	globalAppFunc[funcName] = f
+}
+
 // AddRegisteredConfigTypes adds the registered config types for an app to the system
 func (cl *Cmdline) AddRegisteredConfigTypes(appName string) {
 	appCTs, ok := globalAppConfigTypes[appName]
@@ -1060,6 +1069,14 @@ func (cl *Cmdline) ParseAndRun(args []string, phases []string, options ...func(*
 							return err
 						}
 						return fmt.Errorf("%s", errIf)
+					}
+				}
+			} else {
+				f,ok := globalAppFunc[methodName]
+				if ok {
+					err := f(cfgObj.obj.Interface())
+					if err != nil {
+						return err
 					}
 				}
 			}
